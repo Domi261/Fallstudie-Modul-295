@@ -1,6 +1,7 @@
 package ch.bbcag.backend.todolist.item;
 
 import ch.bbcag.backend.todolist.person.Person;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -24,6 +25,7 @@ public class Item {
     private LocalDateTime doneAt;
 
     @ManyToOne
+    @JsonBackReference
     @JoinColumn(name = "person_id")
     private Person person;
 

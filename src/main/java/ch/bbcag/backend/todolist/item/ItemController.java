@@ -1,10 +1,10 @@
 package ch.bbcag.backend.todolist.item;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import ch.bbcag.backend.todolist.person.Person;
+import ch.bbcag.backend.todolist.person.PersonRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
-import javax.persistence.EntityNotFoundException;
 import java.util.List;
 
 @RestController
@@ -13,30 +13,36 @@ public class ItemController {
 
     private final ItemRepository itemRepository;
 
+    // Konstruktor-Injektion
     public ItemController(ItemRepository itemRepository) {
         this.itemRepository = itemRepository;
     }
 
-    @GetMapping("/{id}")
-    public Item findById(@PathVariable Integer id) {
-        return itemRepository.findById(id)
-                .orElseThrow(EntityNotFoundException::new);
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Integer id) {
+        itemRepository.deleteById(id);
     }
 
-    @PostMapping
+    @GetMapping("/{id}")
+    public Item getItemById(@PathVariable Integer id) {
+        return itemRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Item not found"));
+    }
+
+    @PostMapping("/add")
     public Item insert(@RequestBody Item item) {
         return itemRepository.save(item);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Integer id) {
-        itemRepository.deleteById(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    @GetMapping("/all") // all
+    public List<Item> getAllItems() {
+        return itemRepository.findAll();
     }
 
-    // Methode zum Finden von Items anhand eines Namens
     @GetMapping
-    public List<Item> findItems(@RequestParam String name) {
-        return itemRepository.findByNameContains(name);
+    public List<Item> findItemsByName(@RequestParam(value = "name", required = false) String name) {
+        if (name != null && !name.isBlank()) {
+            return itemRepository.findByName(name);
+        }
+        return itemRepository.findAll();
     }
 }
