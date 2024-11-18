@@ -1,10 +1,12 @@
 package ch.bbcag.backend.todolist.item;
 
 import ch.bbcag.backend.todolist.person.Person;
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import ch.bbcag.backend.todolist.tag.Tag;
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Set;
 
 @Entity
 public class Item {
@@ -12,38 +14,46 @@ public class Item {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-
-    private String name;
-
     private String description;
+    private String name;
 
     @Column(insertable = false)
     private LocalDateTime createdAt;
-
     private LocalDateTime deletedAt;
-
     private LocalDateTime doneAt;
 
     @ManyToOne
-    @JsonBackReference
     @JoinColumn(name = "person_id")
     private Person person;
 
-    // Getter und Setter
+    @ManyToMany
+    @JoinTable(
+            name = "item_tag",
+            joinColumns = @JoinColumn(name = "item_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id"))
+    private Set<Tag> linkedTags;
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Item item = (Item) o;
+        return Objects.equals(id, item.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+
     public Integer getId() {
         return id;
     }
 
     public void setId(Integer id) {
         this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public String getDescription() {
@@ -54,8 +64,20 @@ public class Item {
         this.description = description;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
     public LocalDateTime getDeletedAt() {
@@ -82,17 +104,11 @@ public class Item {
         this.person = person;
     }
 
-    // equals und hashCode Methoden basierend auf id
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Item item = (Item) o;
-        return Objects.equals(id, item.id);
+    public Set<Tag> getLinkedTags() {
+        return linkedTags;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
+    public void setLinkedTags(Set<Tag> linkedTags) {
+        this.linkedTags = linkedTags;
     }
 }

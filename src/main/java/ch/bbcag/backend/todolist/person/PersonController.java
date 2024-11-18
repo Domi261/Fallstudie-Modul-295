@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+
 @RestController
 @RequestMapping(PersonController.PATH)
 public class PersonController {
@@ -32,7 +34,11 @@ public class PersonController {
                     content = @Content(schema = @Schema(implementation = PersonResponseDTO.class)))
     })
     public ResponseEntity<?> findAll() {
-        return ResponseEntity.ok(personService.findAll().stream().map(PersonMapper::toResponseDTO).toList());
+        List<Person> persons = personService.findAll();
+
+        return ResponseEntity.ok(persons.stream()
+                .map(PersonMapper::toResponseDTO)
+                .toList());
     }
 
     @GetMapping("{id}")
@@ -45,7 +51,8 @@ public class PersonController {
     })
     public ResponseEntity<?> findById(@Parameter(description = "Id of person to get") @PathVariable Integer id) {
         try {
-            return ResponseEntity.ok(PersonMapper.toResponseDTO(personService.findById(id)));
+            Person person = personService.findById(id);
+            return ResponseEntity.ok(PersonMapper.toResponseDTO(person));
         } catch (EntityNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Person was not found");
         }
@@ -61,11 +68,11 @@ public class PersonController {
             @ApiResponse(responseCode = "409", description = "There was a conflict while updating the person",
                     content = @Content)
     })
-    public ResponseEntity<?> update(@Parameter(description = "The person to update") @RequestBody PersonRequestDTO personRequestDTO, @PathVariable Integer id) {
+    public ResponseEntity<?> update(@Parameter(description = "The person to update") @RequestBody PersonRequestDTO updatePersonDTO, @PathVariable Integer id) {
         try {
-            Person person = PersonMapper.fromRequestDTO(personRequestDTO);
-            person.setId(id);
-            return ResponseEntity.ok(PersonMapper.toResponseDTO(personService.update(person)));
+            Person updatePerson = PersonMapper.fromRequestDTO(updatePersonDTO);
+            Person savedPerson = personService.update(updatePerson, id);
+            return ResponseEntity.ok(PersonMapper.toResponseDTO(savedPerson));
         } catch (DataIntegrityViolationException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "There was a conflict while updating the person");
         } catch (EntityNotFoundException e) {

@@ -1,48 +1,77 @@
 package ch.bbcag.backend.todolist.item;
 
-import ch.bbcag.backend.todolist.person.Person;
-import ch.bbcag.backend.todolist.person.PersonRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/items")
+@RequestMapping(path = ItemController.PATH)
 public class ItemController {
+    public static final String PATH = "/items";
 
-    private final ItemRepository itemRepository;
+    private final ItemService itemService;
 
-    // Konstruktor-Injektion
-    public ItemController(ItemRepository itemRepository) {
-        this.itemRepository = itemRepository;
-    }
-
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable Integer id) {
-        itemRepository.deleteById(id);
+    public ItemController(ItemService itemService) {
+        this.itemService = itemService;
     }
 
     @GetMapping("/{id}")
-    public Item getItemById(@PathVariable Integer id) {
-        return itemRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Item not found"));
+    public ResponseEntity<?> findById(@PathVariable("id") Integer id) {
+        try {
+            Item item = itemService.findById(id);
+            return ResponseEntity.ok(ItemMapper.toResponseDTO(item));
+        } catch (EntityNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Item was not found");
+        }
     }
 
-    @PostMapping("/add")
-    public Item insert(@RequestBody Item item) {
-        return itemRepository.save(item);
+    @PostMapping
+    public ResponseEntity<?> insert(@RequestBody ItemRequestDTO newItemDTO) {
+        try {
+            Item newItem = ItemMapper.fromRequestDTO(newItemDTO);
+            Item savedItem = itemService.insert(newItem);
+            return ResponseEntity.status(201).body(ItemMapper.toResponseDTO(savedItem));
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Item could not be created");
+        }
     }
 
-    @GetMapping("/all") // all
-    public List<Item> getAllItems() {
-        return itemRepository.findAll();
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable("id") Integer id) {
+        try {
+            itemService.deleteById(id);
+            return ResponseEntity.noContent().build();
+        } catch (EmptyResultDataAccessException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Item was not found");
+        }
     }
 
     @GetMapping
-    public List<Item> findItemsByName(@RequestParam(value = "name", required = false) String name) {
-        if (name != null && !name.isBlank()) {
-            return itemRepository.findByName(name);
+    public ResponseEntity<?> findItems(@RequestParam(required = false) String name) {
+        List<Item> items = StringUtils.isNotBlank(name)
+                ? itemService.findByName(name)
+                : itemService.findAll();
+
+        return ResponseEntity.ok(items.stream()
+                .map(ItemMapper::toResponseDTO)
+                .toList());
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> update(@RequestBody ItemRequestDTO updateItemDTO, @PathVariable Integer id) {
+        try {
+            Item updateItem = ItemMapper.fromRequestDTO(updateItemDTO);
+            Item savedItem = itemService.update(updateItem, id);
+            return ResponseEntity.status(201).body(ItemMapper.toResponseDTO(savedItem));
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Item could not be created");
         }
-        return itemRepository.findAll();
     }
 }

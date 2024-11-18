@@ -1,7 +1,6 @@
 package ch.bbcag.backend.todolist.person;
 
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -12,7 +11,6 @@ public class PersonService {
     private final PersonRepository personRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Autowired
     public PersonService(PersonRepository personRepository, PasswordEncoder passwordEncoder) {
         this.personRepository = personRepository;
         this.passwordEncoder = passwordEncoder;
@@ -31,8 +29,8 @@ public class PersonService {
         return personRepository.findById(id).orElseThrow(EntityNotFoundException::new);
     }
 
-    public Person update(Person changing) {
-        Person existing = personRepository.findById(changing.getId()).orElseThrow(EntityNotFoundException::new);
+    public Person update(Person changing, Integer id) {
+        Person existing = this.findById(id);
         mergePersons(existing, changing);
         return personRepository.save(existing);
     }
